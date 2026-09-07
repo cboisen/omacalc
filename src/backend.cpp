@@ -29,6 +29,7 @@ bool isOperator(const QString &token) {
 // '#' themselves, so only a '#' outside a string starts a comment.
 QString stripTomlComment(const QString &line) {
     QChar quote;
+    int valueStart = -1;
     for (int i = 0; i < line.size(); ++i) {
         const QChar character = line.at(i);
         if (!quote.isNull()) {
@@ -38,7 +39,13 @@ QString stripTomlComment(const QString &line) {
                 ++i;
         } else if (character == QLatin1Char('"') || character == QLatin1Char('\'')) {
             quote = character;
+        } else if (character == QLatin1Char('=') && valueStart < 0) {
+            valueStart = i + 1;
         } else if (character == QLatin1Char('#')) {
+            // An unquoted value is a bare "#rrggbb", so the first '#' after the
+            // '=' opens the value; only a later one starts a comment.
+            if (valueStart >= 0 && line.mid(valueStart, i - valueStart).trimmed().isEmpty())
+                continue;
             return line.left(i);
         }
     }

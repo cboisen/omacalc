@@ -285,6 +285,23 @@ private slots:
         QCOMPARE(calculator.themeAccent(), QStringLiteral("#56a8f5"));
         QCOMPARE(calculator.themeSelection(), QStringLiteral("#2a4371"));
         QVERIFY(calculator.darkMode());
+
+        // A bare hex value opens with the same '#' a comment does.
+        QVERIFY(colorsFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text));
+        const QByteArray bare(
+            "mode = \"dark\"\n"
+            "accent = #56a8f5\n"
+            "selection = #2a4371  # selection-bg-active\n"
+            "background = #191a1c\n"
+            "foreground = #bcbec4  # editor-text\n");
+        QCOMPARE(colorsFile.write(bare), qint64(bare.size()));
+        colorsFile.close();
+
+        Backend bareCalculator;
+        QCOMPARE(bareCalculator.themeBackground(), QStringLiteral("#191a1c"));
+        QCOMPARE(bareCalculator.themeForeground(), QStringLiteral("#bcbec4"));
+        QCOMPARE(bareCalculator.themeAccent(), QStringLiteral("#56a8f5"));
+        QCOMPARE(bareCalculator.themeSelection(), QStringLiteral("#2a4371"));
     }
 
 private:
