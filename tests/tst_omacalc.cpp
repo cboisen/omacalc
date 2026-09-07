@@ -252,6 +252,41 @@ private slots:
         QVERIFY(!calculator.darkMode());
     }
 
+    void ignoresCommentsInOmarchyTheme() {
+        QTemporaryDir homeDirectory;
+        QVERIFY(homeDirectory.isValid());
+
+        const QByteArray originalHome = qgetenv("HOME");
+        struct HomeRestorer {
+            QByteArray value;
+            ~HomeRestorer() { qputenv("HOME", value); }
+        } restoreHome{originalHome};
+        QVERIFY(qputenv("HOME", homeDirectory.path().toUtf8()));
+
+        const QString themeDirectory = homeDirectory.path()
+            + QStringLiteral("/.local/state/omarchy/current/theme");
+        QVERIFY(QDir().mkpath(themeDirectory));
+
+        QFile colorsFile(themeDirectory + QStringLiteral("/colors.toml"));
+        QVERIFY(colorsFile.open(QIODevice::WriteOnly | QIODevice::Text));
+        const QByteArray palette(
+            "# A theme that annotates every value.\n"
+            "mode = \"dark\"  # matches the ramp\n"
+            "accent    = \"#56a8f5\"  # function declaration\n"
+            "selection = \"#2a4371\"  # selection-bg-active (blue-50)\n"
+            "background = \"#191a1c\"  # layer-0-bg\n"
+            "foreground = \"#bcbec4\"  # editor-text\n");
+        QCOMPARE(colorsFile.write(palette), qint64(palette.size()));
+        colorsFile.close();
+
+        Backend calculator;
+        QCOMPARE(calculator.themeBackground(), QStringLiteral("#191a1c"));
+        QCOMPARE(calculator.themeForeground(), QStringLiteral("#bcbec4"));
+        QCOMPARE(calculator.themeAccent(), QStringLiteral("#56a8f5"));
+        QCOMPARE(calculator.themeSelection(), QStringLiteral("#2a4371"));
+        QVERIFY(calculator.darkMode());
+    }
+
 private:
     QTemporaryDir m_settingsDirectory;
 };

@@ -25,6 +25,26 @@ bool isOperator(const QString &token) {
         || token == multiplySign || token == divideSign;
 }
 
+// Theme values might carry a trailing "# note" comment, and hex colors open with
+// '#' themselves, so only a '#' outside a string starts a comment.
+QString stripTomlComment(const QString &line) {
+    QChar quote;
+    for (int i = 0; i < line.size(); ++i) {
+        const QChar character = line.at(i);
+        if (!quote.isNull()) {
+            if (character == quote)
+                quote = QChar();
+            else if (character == QLatin1Char('\\') && quote == QLatin1Char('"'))
+                ++i;
+        } else if (character == QLatin1Char('"') || character == QLatin1Char('\'')) {
+            quote = character;
+        } else if (character == QLatin1Char('#')) {
+            return line.left(i);
+        }
+    }
+    return line;
+}
+
 // Digits are entered raw, so "5." and "-" can linger while typing. Seal them
 // into plain numbers before they join the expression.
 QString sealNumber(const QString &entry) {
@@ -445,8 +465,8 @@ void Backend::loadOmarchyTheme() {
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&file);
         while (!in.atEnd()) {
-            const QString line = in.readLine().trimmed();
-            if (line.isEmpty() || line.startsWith(QLatin1Char('#')))
+            const QString line = stripTomlComment(in.readLine()).trimmed();
+            if (line.isEmpty())
                 continue;
 
             const int equals = line.indexOf(QLatin1Char('='));
